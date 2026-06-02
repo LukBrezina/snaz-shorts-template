@@ -1,66 +1,101 @@
 # Snáz.cz — Shorts generator
 
-Turn a folder of raw phone footage into a polished **1080×1920 vertical short**
-(Instagram Reels / TikTok / YouTube Shorts), on-brand and end to end. It's a
-[Remotion](https://remotion.dev) project plus a small pipeline of scripts and a
-[Claude Code](https://claude.com/claude-code) skill that drives the whole thing:
-identify the main talking-head clip, cut out re-takes, transcribe to karaoke
-captions, time supporting screenshots/photos to the narration, render, then run
-a generator↔reviewer loop until it's clean.
+Turn a folder of raw phone footage into a finished **1080×1920 vertical short**
+(Reels / TikTok / YouTube Shorts). A [Remotion](https://remotion.dev) template
+plus a [Claude Code](https://claude.com/claude-code) skill that cuts out
+re-takes, transcribes to karaoke captions, times your screenshots/photos to the
+narration, renders, and self-reviews until it's clean.
 
-There's also a tiny **mobile dashboard** so you can do all of this from your
-phone — upload footage, watch it render, download/share the result — by running
-the generator on a PC or VPS behind [Tailscale](https://tailscale.com). See
-[Run it from your phone](#run-it-from-your-phone-vps--pc-behind-tailscale).
+> ⚠️ **Disclaimer.** This was extracted from my private monorepo and lightly
+> adapted to stand alone. It is **not tested as a standalone repo** — treat it as
+> a starting point, expect a few rough edges, and check paths/commands before
+> trusting them.
+
+## What it does
+
+- **In:** a folder `videos/<name>/` with your talking-head clip + the
+  screenshots/photos you talk about. **Out:** `videos/<name>/short.mp4`.
+- The **create-short** Claude Code skill drives it end to end (probe → cut →
+  caption → render → review loop). See
+  [`.claude/skills/create-short/SKILL.md`](.claude/skills/create-short/SKILL.md).
+- An optional **mobile dashboard** (`dashboard/`) lets you do the whole thing
+  from your phone — upload, watch it render, download or share to Instagram/TikTok.
+
+## Run it
+
+**On your computer** — preview and edit the templates live:
+
+```bash
+cd template && npm install && npm run studio   # Remotion Studio
+```
+
+To render a real short, drop footage in `videos/<name>/` and run the
+**create-short** skill in Claude Code (or follow the steps in `SKILL.md` by hand).
+
+**From your phone** — run the generator on an always-on box (a cheap Linux VPS,
+or your own desktop) joined to your private [Tailscale](https://tailscale.com)
+network. Any device on the same tailnet — your phone included — opens the
+dashboard in a browser and can upload footage and download/share the finished
+shorts. Nothing is exposed to the public internet; Tailscale is the access
+control. **Setup is in [Set it up on a VPS or PC](#set-it-up-on-a-vps-or-pc)
+below** — hand that whole section to Claude Code and let it do it.
+
+## Make it your brand
+
+The look of every short lives in three places:
+
+- `template/src/theme.ts` — colours and safe zones
+- `template/src/fonts.tsx` — fonts (loaded via `@remotion/google-fonts`)
+- `template/public/logo/` — the logo shown in the corner / outro
+
+The fastest way to re-skin it: **drop an existing website or design system into a
+folder** (e.g. `brand/` — the HTML/CSS, a Figma/tokens export, brand screenshots,
+or just the URL) and tell Claude Code:
+
+> "Restyle the shorts template to match the brand in `./brand` — pull its colours,
+> fonts and logo and update `template/src/theme.ts`, `template/src/fonts.tsx` and
+> `template/public/logo/`. Then re-render the sample short so I can see it."
+
+Claude reads the source, rewrites the theme, and every short you make afterwards
+matches your site. (The shipped theme + copy are Snáz.cz's — swap them out.)
 
 ## Layout
 
 ```
-template/                 the Remotion project (compositions, scripts, brand assets)
-  src/                    components + the data-driven `Short` composition
-  scripts/                probe / transcribe / cut / render / review helpers
-  public/                 fonts, logo, and media/ (footage — gitignored)
-videos/                   raw source footage folders, one per short (gitignored)
-dashboard/                mobile upload/download web app (Node, ~1 dependency)
-.claude/skills/create-short/  the Claude Code skill that orchestrates the pipeline
+template/                     the Remotion project (compositions, scripts, brand assets)
+videos/                       raw footage folders, one per short (gitignored)
+dashboard/                    mobile upload/download web app — see dashboard/README.md
+.claude/skills/create-short/  the skill that orchestrates the pipeline
 ```
 
-## Quick start (local)
+---
+
+## Set it up on a VPS or PC
+
+Instructions for an agent (or a patient human) to stand the whole thing up on an
+always-on box and expose it to your phone over Tailscale. No interactive login is
+required — auth is via an API key, and the renders run fully headless. Commands
+assume Ubuntu/Debian; adjust for your distro or for macOS.
+
+### 1. Install system dependencies
 
 ```bash
-cd template
-npm install
-npm run studio          # Remotion Studio — live preview + props editor
+sudo apt update
+sudo apt install -y ffmpeg python3 git curl build-essential
+# Node 20+ (NodeSource; or use nvm)
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - && sudo apt install -y nodejs
 ```
 
-In Studio you'll see the compositions in the sidebar; pick one, edit its props
-on the right, scrub the timeline. To render a finished short from a footage
-folder, see the step-by-step pipeline in
-[`.claude/skills/create-short/SKILL.md`](.claude/skills/create-short/SKILL.md)
-(run it with Claude Code, or follow it by hand).
+`whisper-cpp` (provides the `whisper-cli` binary the transcribe step needs).
+If there's no system package, build it:
 
-For the template internals — compositions, captions, split-screen options, brand
-tweaks — see [`template/README.md`](template/README.md).
+```bash
+git clone https://github.com/ggerganov/whisper.cpp /tmp/whisper.cpp
+make -C /tmp/whisper.cpp -j
+sudo cp /tmp/whisper.cpp/build/bin/whisper-cli /usr/local/bin/
+```
 
-## Make a short, in short
-
-1. Drop a footage folder in `videos/<name>/` — the talking-head clip plus the
-   screenshots/photos you talk about.
-2. Run the **create-short** skill (or follow `SKILL.md`): it probes the folder,
-   transcribes, cuts re-takes, builds `props.json`, and renders.
-3. Out comes `videos/<name>/short.mp4`.
-
-## Requirements
-
-| Tool | Why | Install |
-|------|-----|---------|
-| **Node 18+** | Remotion + the dashboard | [nodejs.org](https://nodejs.org) / `nvm` |
-| **ffmpeg / ffprobe** | probe, cut, normalise audio | `brew install ffmpeg` · `apt install ffmpeg` |
-| **whisper-cpp** | Czech transcription (`whisper-cli`) | `brew install whisper-cpp` · [build from source](https://github.com/ggerganov/whisper.cpp) |
-| **Python 3** | the cut script | preinstalled on most systems |
-| **Claude Code CLI** | runs the `create-short` skill | [claude.com/claude-code](https://claude.com/claude-code) |
-
-The first run downloads the Whisper model:
+Download the Whisper model:
 
 ```bash
 mkdir -p ~/.cache/whisper
@@ -68,138 +103,104 @@ curl -L -o ~/.cache/whisper/ggml-large-v3-turbo.bin \
   https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin
 ```
 
----
+### 2. Install the Claude Code CLI (headless auth)
 
-## Run it from your phone (VPS / PC, behind Tailscale)
-
-You film on your phone, but rendering wants a real machine with `ffmpeg`, Whisper
-and Node. The setup: run the generator + **dashboard** on a always-on box (a
-cheap Linux VPS, or just your desktop), put that box on your private
-[Tailscale](https://tailscale.com) network, and open the dashboard from your
-phone's browser. Upload clips → it renders → download or share straight into
-Instagram/TikTok. No ports exposed to the public internet, no auth to build —
-Tailscale *is* the access control.
-
-```
- 📱 phone (Tailscale)  ──https──►  🖥️ VPS/PC (Tailscale)
-   upload footage                  dashboard :4321
-   download / share short          ├─ /create-short  (Claude Code → ffmpeg/Whisper/Remotion)
-                                    └─ videos/<name>/short.mp4
-```
-
-### 1. Get the box ready
-
-Any Linux box (Ubuntu/Debian example) or your own Mac/PC:
+Install the CLI per [claude.com/claude-code](https://claude.com/claude-code),
+then authenticate **without an interactive login** by exporting an API key — the
+unattended renders inherit it:
 
 ```bash
-# system deps
-sudo apt update && sudo apt install -y ffmpeg python3 git curl
-# Node 18+ (nodesource, or use nvm)
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - && sudo apt install -y nodejs
-# whisper-cpp — build from source if no package (provides `whisper-cli`)
-#   git clone https://github.com/ggerganov/whisper.cpp && cd whisper.cpp && make && sudo cp build/bin/whisper-cli /usr/local/bin/
+export ANTHROPIC_API_KEY=sk-ant-...      # put this in the service env (step 5), not just your shell
+claude --version                          # confirm it's on PATH — this is the dashboard's CLAUDE_BIN
 ```
 
-Then clone this repo and install both Node projects:
+### 3. Clone and install
 
 ```bash
 git clone https://github.com/LukBrezina/snaz-shorts-template.git
 cd snaz-shorts-template
-( cd template && npm install )      # Remotion
-( cd dashboard && npm install )     # dashboard
-# Whisper model (see Requirements above)
+( cd template  && npm install )           # Remotion
+( cd dashboard && npm install )           # dashboard (one dep: formidable)
 ```
 
-Install and log in to the **Claude Code CLI** on the box (this is what actually
-runs `/create-short`):
+### 4. Pre-grant tools so headless renders don't stall
+
+The dashboard runs `claude -p "/create-short <slug>"` with no terminal attached.
+The pipeline shells out a lot (`ffmpeg`, `whisper-cli`, `npx remotion`, …) and
+Claude Code would normally prompt before each — with no TTY the run just stalls.
+Allowlist the tools in a repo-local `.claude/settings.json` at the repo root:
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "Read", "Write", "Edit", "Task",
+      "Bash(scripts/:*)",
+      "Bash(ffmpeg:*)", "Bash(ffprobe:*)", "Bash(whisper-cli:*)",
+      "Bash(python3:*)", "Bash(npx:*)", "Bash(npm:*)", "Bash(node:*)",
+      "Bash(sips:*)", "Bash(mkdir:*)", "Bash(cp:*)", "Bash(mv:*)"
+    ]
+  }
+}
+```
+
+If a render stalls, the short's `.create-short.log` shows which tool was blocked
+— add it. (Or, on a single-purpose box, edit `dashboard/server.js` to pass
+`--dangerously-skip-permissions` to the spawn; broader, see
+[`dashboard/README.md`](dashboard/README.md#headless-permissions-unattended-renders).)
+
+### 5. Run the dashboard as a service
+
+It binds `0.0.0.0:4321` by default so tailnet peers can reach it. Keep it alive
+with systemd — create `/etc/systemd/system/shorts-dashboard.service`:
+
+```ini
+[Unit]
+Description=Snáz shorts dashboard
+After=network-online.target
+
+[Service]
+WorkingDirectory=/home/USER/snaz-shorts-template/dashboard
+ExecStart=/usr/bin/node server.js
+Environment=ANTHROPIC_API_KEY=sk-ant-...
+Environment=CLAUDE_BIN=/usr/local/bin/claude
+Restart=always
+User=USER
+
+[Install]
+WantedBy=multi-user.target
+```
 
 ```bash
-# install per claude.com/claude-code, then:
-claude            # log in once, interactively
-claude --version  # confirm it's on PATH — this is dashboard's CLAUDE_BIN
+sudo systemctl enable --now shorts-dashboard
+sudo systemctl status shorts-dashboard      # check it's running
 ```
 
-Because the dashboard runs Claude Code **non-interactively**, you also need to
-pre-grant the tools the pipeline shells out (ffmpeg, Whisper, Remotion, …) or the
-unattended render stalls on a permission prompt. See
-[dashboard/README.md → Headless permissions](dashboard/README.md#headless-permissions-unattended-renders).
-
-### 2. Put the box on Tailscale
-
-Install Tailscale on the box **and** on your phone (App Store / Play Store), log
-both into the **same** Tailscale account:
+### 6. Join Tailscale and connect from your phone
 
 ```bash
 curl -fsSL https://tailscale.com/install.sh | sh
 sudo tailscale up
-tailscale ip -4          # the box's 100.x.y.z address — you'll use this from the phone
-tailscale status         # or use the MagicDNS name, e.g. http://my-box:4321
+tailscale ip -4                              # the box's 100.x.y.z address
 ```
 
-Tailscale gives the box a stable private IP (`100.x.y.z`) reachable only by your
-own devices. Nothing is published to the internet.
-
-### 3. Start the dashboard
-
-```bash
-cd snaz-shorts-template/dashboard
-npm start                # listens on 0.0.0.0:4321 by default
-```
-
-It binds `0.0.0.0` so your Tailscale peers can reach it. Override with env vars
-if you like: `PORT=8080 CLAUDE_BIN=/usr/local/bin/claude npm start`.
-
-**Keep it running** after you log out — pick one:
-
-```bash
-# systemd (recommended on a VPS) — create /etc/systemd/system/shorts-dashboard.service:
-#   [Unit]
-#   Description=Snáz shorts dashboard
-#   After=network-online.target
-#   [Service]
-#   WorkingDirectory=/home/USER/snaz-shorts-template/dashboard
-#   ExecStart=/usr/bin/node server.js
-#   Environment=CLAUDE_BIN=/usr/local/bin/claude
-#   Restart=always
-#   User=USER
-#   [Install]
-#   WantedBy=multi-user.target
-sudo systemctl enable --now shorts-dashboard
-
-# …or quick and dirty:
-npx pm2 start server.js --name shorts-dashboard && npx pm2 save
-```
-
-### 4. Use it from your phone
-
-On your phone (connected to Tailscale), open:
-
-```
-http://<box-tailscale-ip>:4321      e.g. http://100.101.102.103:4321
-# or, with MagicDNS enabled:  http://my-box:4321
-```
-
-- **➕ Nový short** → name it, pick photos/videos from your camera roll, upload.
-  The box runs `/create-short` in the background.
-- **🎬 Shorty** → watch the render land; when it's *hotovo*, tap **Sdílet** to
-  open the native share sheet (Instagram/TikTok) or **Stáhnout** to save the MP4.
-
-> **Tip — add it to your home screen.** In mobile Safari/Chrome, "Add to Home
-> Screen" makes the dashboard feel like an app.
+Install Tailscale on your phone, log into the **same** account, then open
+`http://<box-100.x.y.z>:4321` (or the MagicDNS name, `http://<box-name>:4321`).
+Use **➕ Nový short** to upload from your camera roll; the box renders in the
+background; **🎬 Shorty** lets you download or share the result. "Add to Home
+Screen" makes it feel like an app.
 
 ### Security
 
-The dashboard has **no authentication**, and uploads trigger code execution
-(they spawn the Claude Code CLI). That's fine *because Tailscale is the gate* —
-only your own devices can reach it. **Never** port-forward it or put it behind a
-public reverse proxy without adding auth. Keep `HOST` on the Tailscale interface
-or `0.0.0.0` within the tailnet; don't expose `:4321` to `0.0.0.0` on a public IP.
+No auth by design — **Tailscale is the gate**, and uploads execute the Claude
+Code CLI on the host. Only your own tailnet devices can reach `:4321`. Never
+port-forward it or put it behind a public reverse proxy without adding
+authentication.
 
 ---
 
-## Brand assets & fonts
+## Licence & assets
 
-The `public/logo/` files are **Snáz.cz** brand marks — reuse the structure, but
-swap in your own logo if you fork this. Fonts (DM Serif Display + Outfit) load at
-render time via `@remotion/google-fonts`; both are licensed under the SIL Open
-Font License. Code is MIT (see `LICENSE`).
+Code is MIT (see `LICENSE`). The `template/public/logo/` files are **Snáz.cz**
+trademarks — swap in your own. The bundled fonts (DM Serif Display + Outfit) are
+under the SIL Open Font License.

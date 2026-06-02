@@ -90,8 +90,10 @@ This lets the agent run **any** command with no approval. Only acceptable
 *because the box is single-purpose and gated behind Tailscale* (see below) — it
 still executes whatever the model decides to. Prefer **A** if you can.
 
-Either way, **log in to Claude Code once interactively** on the box first
-(`claude`), so the non-interactive runs inherit a valid session.
+Either way, the box needs Claude Code **authenticated headlessly** — export
+`ANTHROPIC_API_KEY` in the service environment so the non-interactive runs pick
+it up (no interactive login needed). See the root
+[`README.md`](../README.md#set-it-up-on-a-vps-or-pc) for the full box setup.
 
 ## Security note
 
