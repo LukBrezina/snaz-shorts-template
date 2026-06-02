@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Shorts dashboard</title>
+<style>
+:root{
+  --ink:#0b3d2e;--green:#1f8a3b;--green-soft:#e7f0ed;--bg:#f6f7f9;--card:#fff;
+  --bd:#e3e6ea;--text:#1c1e21;--muted:#707880;--y:#b8860b;--r:#b00020;
+}
+*{box-sizing:border-box}
+body{margin:0;font:16px/1.5 -apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text)}
+header{background:var(--ink);color:#fff;padding:18px 24px}
+header h1{margin:0;font-size:20px;letter-spacing:.2px}
+header .sub{opacity:.8;font-size:13px;margin-top:2px}
+nav{display:flex;gap:4px;background:var(--ink);padding:0 16px}
+nav button{background:none;border:0;color:#cfe0d8;font:600 14px/1 inherit;padding:14px 18px;cursor:pointer;border-bottom:3px solid transparent}
+nav button.active{color:#fff;border-bottom-color:var(--green)}
+nav button:hover{color:#fff}
+.wrap{max-width:1000px;margin:24px auto;padding:0 16px}
+.panel{display:none}.panel.active{display:block}
+h2.sec{margin:4px 0 16px;font-size:17px;color:var(--ink)}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:16px;margin:0 0 12px}
+.row{display:flex;align-items:center;gap:12px}
+.spread{justify-content:space-between}
+.pill{font-size:12px;font-weight:600;padding:2px 9px;border-radius:999px}
+.pill.ready{background:var(--green);color:#fff}
+.pill.processing{background:var(--y);color:#fff}
+.pill.draft{background:#f0f2f5;color:var(--muted)}
+.title{font-weight:700;color:var(--ink);font-size:16px}
+.muted{color:var(--muted);font-size:13px}
+a.btn,button.btn{display:inline-block;border:0;border-radius:8px;padding:8px 16px;font:600 14px/1 inherit;cursor:pointer;text-decoration:none}
+.btn-primary{background:var(--ink);color:#fff}
+.btn-primary:hover{background:#0e4d3a}
+.btn-ghost{background:var(--green-soft);color:var(--ink)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+.short-card{cursor:pointer;transition:transform .08s,box-shadow .08s}
+.short-card:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(11,61,46,.1)}
+.thumb{aspect-ratio:9/16;background:#0b3d2e;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#cfe0d8;overflow:hidden;margin-bottom:10px}
+.thumb video{width:100%;height:100%;object-fit:cover}
+.empty{background:var(--card);border:1px dashed var(--bd);border-radius:12px;padding:28px;color:var(--muted);text-align:center}
+.drop{border:2px dashed var(--bd);border-radius:12px;padding:36px;text-align:center;color:var(--muted);background:var(--card);cursor:pointer;transition:.1s}
+.drop.over{border-color:var(--green);background:var(--green-soft);color:var(--ink)}
+input[type=text]{width:100%;padding:11px 13px;border:1px solid var(--bd);border-radius:8px;font:15px inherit}
+label.fld{display:block;font-weight:600;font-size:14px;margin:0 0 6px;color:var(--ink)}
+.filelist{list-style:none;margin:14px 0 0;padding:0;font-size:13px}
+.filelist li{padding:6px 10px;background:#f0f2f5;border-radius:6px;margin-bottom:6px;display:flex;justify-content:space-between}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 20px;border-radius:10px;font-size:14px;box-shadow:0 8px 30px rgba(0,0,0,.25);opacity:0;transition:.2s;pointer-events:none}
+.toast.show{opacity:1}
+.toast.err{background:var(--r)}
+.player{max-width:380px;margin:0 auto}
+.player video{width:100%;border-radius:14px;background:#000;aspect-ratio:9/16}
+.back{background:none;border:0;color:var(--ink);font:600 14px inherit;cursor:pointer;padding:0;margin-bottom:14px}
+.bar{height:8px;background:#eef1f3;border-radius:999px;overflow:hidden;margin-top:10px}
+.bar>div{height:100%;background:var(--green);width:0;transition:width .15s}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid #fff5;border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:-2px;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<header>
+  <h1>🎬 Shorts dashboard</h1>
+  <div class="sub">Nahraj materiály z mobilu → /create-short → stáhni hotový short</div>
+</header>
+<nav>
+  <button data-tab="shorts" class="active">🎬 Shorty</button>
+  <button data-tab="new">➕ Nový short</button>
+</nav>
+
+<div class="wrap">
+  <!-- SHORTS -->
+  <section class="panel active" id="shorts">
+    <div id="shortsList">
+      <h2 class="sec">Shorty</h2>
+      <div id="shortsGrid"><div class="muted">Načítám…</div></div>
+    </div>
+    <div id="shortDetail" style="display:none"></div>
+  </section>
+
+  <!-- NEW SHORT -->
+  <section class="panel" id="new">
+    <h2 class="sec">Nový short</h2>
+    <div class="card">
+      <label class="fld" for="shortName">Název shortu</label>
+      <input type="text" id="shortName" placeholder="napr. 4hrs_in_hackathon" autocomplete="off">
+      <p class="muted" style="margin:6px 0 0">Vytvoří se složka <code>videos/&lt;název&gt;</code> a na pozadí se spustí <code>/create-short</code>.</p>
+
+      <div class="drop" id="drop" style="margin-top:16px">
+        <div style="font-size:32px">📥</div>
+        <div><b>Přetáhni sem fotky a videa</b><br>nebo klikni pro výběr</div>
+        <input type="file" id="fileInput" multiple accept="video/*,image/*,.mov,.heic" hidden>
+      </div>
+      <ul class="filelist" id="fileList"></ul>
+
+      <div class="bar" id="progressBar" style="display:none"><div></div></div>
+
+      <div class="row" style="margin-top:16px">
+        <button class="btn btn-primary" id="submitBtn">Vytvořit short</button>
+        <span class="muted" id="newStatus"></span>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => [...r.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function toast(msg, isErr=false){
+  const t = $("#toast"); t.textContent = msg; t.className = "toast show" + (isErr?" err":"");
+  setTimeout(()=>t.className="toast", 3200);
+}
+
+// ---- Tabs ----
+$$("nav button").forEach(b => b.onclick = () => {
+  $$("nav button").forEach(x=>x.classList.toggle("active", x===b));
+  $$(".panel").forEach(p=>p.classList.toggle("active", p.id===b.dataset.tab));
+  if(b.dataset.tab==="shorts") showShortsList();
+});
+
+// ---- Shorts ----
+function showShortsList(){
+  $("#shortDetail").style.display="none";
+  $("#shortsList").style.display="block";
+  loadShorts();
+}
+async function loadShorts(){
+  const grid = $("#shortsGrid");
+  try{
+    const shorts = await (await fetch("/api/shorts")).json();
+    if(!shorts.length){ grid.innerHTML = '<div class="empty">Zatím žádné shorty. Přepni na <b>Nový short</b> a nahraj materiály.</div>'; return; }
+    grid.className = "grid";
+    grid.innerHTML = shorts.map(s => {
+      const thumb = s.videoUrl
+        ? `<div class="thumb"><video src="${s.videoUrl}#t=0.5" muted preload="metadata"></video></div>`
+        : `<div class="thumb"><span>${s.status==="processing"?"⚙️ zpracovává se":"📁 koncept"}</span></div>`;
+      const meta = s.status==="ready" ? `${s.sizeMB} MB` : s.status==="processing" ? "běží /create-short" : "jen materiály";
+      const share = s.videoUrl
+        ? `<div class="row" style="margin-top:10px;gap:8px">
+             <button class="btn btn-ghost share-btn" data-name="${esc(s.name)}" data-video="${s.videoUrl}" style="flex:1">📤 Sdílet</button>
+             <a class="btn btn-ghost" href="${s.videoUrl}" download="${esc(s.name)}.mp4" style="flex:1;text-align:center" onclick="event.stopPropagation()">⬇️ Stáhnout</a>
+           </div>`
+        : "";
+      return `<div class="card short-card" data-name="${esc(s.name)}" data-video="${s.videoUrl||""}">
+        ${thumb}
+        <div class="row spread">
+          <span class="title" style="font-size:14px">${esc(s.name)}</span>
+          <span class="pill ${s.status}">${s.status==="ready"?"hotovo":s.status==="processing"?"běží":"koncept"}</span>
+        </div>
+        <div class="muted">${esc(meta)}</div>
+        ${share}
+      </div>`;
+    }).join("");
+    $$(".short-card", grid).forEach(c => c.onclick = () => openShort(c.dataset.name, c.dataset.video));
+    $$(".share-btn", grid).forEach(b => b.onclick = e => { e.stopPropagation(); shareShort(b.dataset.name, b.dataset.video, b); });
+  }catch(e){ grid.innerHTML = '<div class="empty">Chyba načítání.</div>'; }
+}
+function openShort(name, video){
+  $("#shortsList").style.display="none";
+  const d = $("#shortDetail"); d.style.display="block";
+  d.innerHTML = `<button class="back" id="backBtn">← Zpět na shorty</button>
+    <h2 class="sec">${esc(name)}</h2>
+    ${video
+      ? `<div class="player">
+          <video src="${video}" controls autoplay playsinline></video>
+          <div class="row" style="gap:8px;margin-top:12px">
+            <button class="btn btn-primary" id="detailShare" style="flex:1">📤 Sdílet</button>
+            <a class="btn btn-ghost" href="${video}" download="${esc(name)}.mp4" style="flex:1;text-align:center">⬇️ Stáhnout</a>
+          </div>
+        </div>`
+      : `<div class="empty">Tento short ještě nemá <code>short.mp4</code> — buď se zpracovává, nebo obsahuje jen nahrané materiály.</div>`}`;
+  $("#backBtn").onclick = showShortsList;
+  const sb = $("#detailShare");
+  if(sb) sb.onclick = () => shareShort(name, video, sb);
+}
+
+// Share a short's mp4 via the native share sheet (Instagram/TikTok show up there
+// on mobile). Falls back to downloading the file where file-sharing isn't supported.
+async function shareShort(name, video, btn){
+  const label = btn ? btn.textContent : "";
+  try{
+    if(btn){ btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Připravuji…'; }
+    const res = await fetch(video);
+    if(!res.ok) throw new Error("fetch failed");
+    const blob = await res.blob();
+    const file = new File([blob], `${name}.mp4`, { type: blob.type || "video/mp4" });
+
+    if(navigator.canShare && navigator.canShare({ files: [file] })){
+      await navigator.share({ files: [file], title: name });
+      toast("Otevřel jsem nabídku sdílení.");
+    }else{
+      // Fallback: download so you can upload it in the target app.
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `${name}.mp4`;
+      a.click();
+      setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
+      toast("Sdílení souborů tu nejde — short jsem stáhl, nahraj ho v aplikaci.");
+    }
+  }catch(e){
+    if(e && e.name === "AbortError") return; // user closed the share sheet
+    toast("Sdílení selhalo: " + (e.message || e), true);
+  }finally{
+    if(btn){ btn.disabled = false; btn.textContent = label || "📤 Sdílet"; }
+  }
+}
+
+// ---- New short ----
+let chosenFiles = [];
+const drop = $("#drop"), fileInput = $("#fileInput");
+drop.onclick = () => fileInput.click();
+fileInput.onchange = () => addFiles([...fileInput.files]);
+["dragover","dragenter"].forEach(ev => drop.addEventListener(ev, e=>{e.preventDefault();drop.classList.add("over");}));
+["dragleave","drop"].forEach(ev => drop.addEventListener(ev, e=>{e.preventDefault();drop.classList.remove("over");}));
+drop.addEventListener("drop", e => addFiles([...e.dataTransfer.files]));
+
+function addFiles(files){
+  for(const f of files) if(!chosenFiles.some(x=>x.name===f.name && x.size===f.size)) chosenFiles.push(f);
+  renderFiles();
+}
+function renderFiles(){
+  $("#fileList").innerHTML = chosenFiles.map((f,i)=>
+    `<li><span>${esc(f.name)}</span><span class="muted">${(f.size/1024/1024).toFixed(1)} MB <a href="#" data-i="${i}" style="margin-left:8px;color:var(--r)">✕</a></span></li>`
+  ).join("");
+  $$("#fileList a").forEach(a=>a.onclick=e=>{e.preventDefault();chosenFiles.splice(+a.dataset.i,1);renderFiles();});
+}
+
+$("#submitBtn").onclick = () => {
+  const name = $("#shortName").value.trim();
+  if(!name) return toast("Zadej název shortu.", true);
+  if(!chosenFiles.length) return toast("Nahraj alespoň jeden soubor.", true);
+
+  const fd = new FormData();
+  fd.append("name", name);
+  for(const f of chosenFiles) fd.append("files", f);
+
+  const btn = $("#submitBtn"), bar = $("#progressBar"), barFill = $("#progressBar > div");
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Nahrávám…';
+  bar.style.display = "block";
+
+  const xhr = new XMLHttpRequest();
+  xhr.open("POST", "/api/new-short");
+  xhr.upload.onprogress = e => { if(e.lengthComputable) barFill.style.width = (e.loaded/e.total*100)+"%"; };
+  xhr.onload = () => {
+    btn.disabled = false; btn.textContent = "Vytvořit short"; bar.style.display="none"; barFill.style.width="0";
+    let r = {}; try{ r = JSON.parse(xhr.responseText); }catch{}
+    if(xhr.status===200){
+      toast(`Short „${r.name}" vytvořen · /create-short běží na pozadí.`);
+      chosenFiles = []; renderFiles(); $("#shortName").value="";
+      $$('nav button').find(b=>b.dataset.tab==="shorts").click();
+    }else{
+      toast(r.error || "Nahrávání selhalo.", true);
+    }
+  };
+  xhr.onerror = () => { btn.disabled=false; btn.textContent="Vytvořit short"; bar.style.display="none"; toast("Síťová chyba.", true); };
+  xhr.send(fd);
+};
+
+// init
+showShortsList();
+</script>
+</body>
+</html>

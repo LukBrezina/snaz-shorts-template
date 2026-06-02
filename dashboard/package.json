@@ -1,0 +1,13 @@
+{
+  "name": "snaz-shorts-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Tiny mobile-friendly web app to upload raw footage, kick off /create-short, and download/share the finished short.",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "formidable": "^3.5.1"
+  }
+}
