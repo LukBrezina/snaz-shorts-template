@@ -119,6 +119,11 @@ claude            # log in once, interactively
 claude --version  # confirm it's on PATH — this is dashboard's CLAUDE_BIN
 ```
 
+Because the dashboard runs Claude Code **non-interactively**, you also need to
+pre-grant the tools the pipeline shells out (ffmpeg, Whisper, Remotion, …) or the
+unattended render stalls on a permission prompt. See
+[dashboard/README.md → Headless permissions](dashboard/README.md#headless-permissions-unattended-renders).
+
 ### 2. Put the box on Tailscale
 
 Install Tailscale on the box **and** on your phone (App Store / Play Store), log

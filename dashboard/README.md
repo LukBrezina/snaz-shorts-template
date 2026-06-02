@@ -45,6 +45,54 @@ over **Tailscale** so you can reach it from your phone anywhere.
 > **upload + browse + download/share** UI — the upload just won't auto-render;
 > you'd run `/create-short <slug>` yourself.
 
+## Headless permissions (unattended renders)
+
+The dashboard runs Claude Code **non-interactively** (`claude -p "/create-short …"`)
+with no TTY attached. The pipeline shells out a lot — `ffmpeg`, `ffprobe`,
+`whisper-cli`, `python3`, `npx remotion`, `sips`, file writes — and by default
+Claude Code asks for approval before each of those. With no terminal to answer,
+the run **stalls or aborts** instead of rendering. So you have to pre-grant the
+tools it needs. Two ways:
+
+**A. Allowlist in `.claude/settings.json` (recommended).** Doesn't touch the
+server, scoped to this repo. Create `.claude/settings.json` at the repo root:
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "Read", "Write", "Edit",
+      "Bash(scripts/:*)",
+      "Bash(ffmpeg:*)", "Bash(ffprobe:*)", "Bash(whisper-cli:*)",
+      "Bash(python3:*)", "Bash(npx:*)", "Bash(npm:*)", "Bash(node:*)",
+      "Bash(sips:*)", "Bash(mkdir:*)", "Bash(cp:*)", "Bash(mv:*)",
+      "Task"
+    ]
+  }
+}
+```
+
+Tighten or widen the list to taste — if you hit a stall, the
+`.create-short.log` in the short's folder shows which tool was blocked; add it.
+(`Task` lets it spawn the independent review agent in the generator↔reviewer
+loop.)
+
+**B. Skip prompts entirely.** Edit `server.js` and add the bypass flag to the
+spawn — for a single-purpose box this is the simplest:
+
+```js
+const child = spawn(CLAUDE_BIN,
+  ["-p", "--dangerously-skip-permissions", `/create-short ${name}`],
+  { cwd: REPO_ROOT, detached: true, stdio: ["ignore", log.fd, log.fd] });
+```
+
+This lets the agent run **any** command with no approval. Only acceptable
+*because the box is single-purpose and gated behind Tailscale* (see below) — it
+still executes whatever the model decides to. Prefer **A** if you can.
+
+Either way, **log in to Claude Code once interactively** on the box first
+(`claude`), so the non-interactive runs inherit a valid session.
+
 ## Security note
 
 There's **no authentication** — anyone who can reach the port can upload files
