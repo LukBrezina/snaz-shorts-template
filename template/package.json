@@ -1,0 +1,29 @@
+{
+  "name": "snaz-shorts-template",
+  "version": "1.0.0",
+  "description": "Reusable Snáz.cz vertical-short templates (Instagram Reels / TikTok / YouTube Shorts) built with Remotion. Branded talking-head, split-screen, hook and CTA layouts with timed subtitles.",
+  "private": true,
+  "scripts": {
+    "dev": "remotion studio",
+    "studio": "remotion studio",
+    "render": "remotion render",
+    "render-split": "remotion render SplitScreen out/split-screen.mp4",
+    "render-talking": "remotion render TalkingHead out/talking-head.mp4",
+    "still": "remotion still SplitScreen out/preview.png --frame=60",
+    "upgrade": "remotion upgrade"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.469",
+    "@remotion/fonts": "^4.0.469",
+    "@remotion/google-fonts": "^4.0.471",
+    "@remotion/media-utils": "^4.0.469",
+    "@remotion/transitions": "^4.0.471",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "remotion": "^4.0.469"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "typescript": "^5.7.0"
+  }
+}

@@ -1,0 +1,8 @@
+node_modules/
+out/
+.DS_Store
+# Per-short scratch (props.json, transcripts, cut clips, review frames).
+work/
+# Heavy raw footage — keep source clips out of git, sync them separately.
+public/media/*
+!public/media/.gitkeep

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 272 88">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1f6e54"/>
+      <stop offset="100%" style="stop-color:#0a2c22"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="4" width="80" height="80" rx="16" fill="url(#grad)"/>
+  <text x="40" y="62" font-family="DM Serif Display" font-size="54" fill="white" text-anchor="middle">S</text>
+  <text font-family="DM Serif Display" font-size="52">
+    <tspan x="100" y="60" fill="white">Snáz</tspan><tspan fill="#e8a54b">.</tspan><tspan fill="white">cz</tspan>
+  </text>
+</svg>

@@ -1,0 +1,6 @@
+.DS_Store
+*.log
+
+# Raw source footage — keep the folder, not the heavy clips. Sync these separately.
+videos/*
+!videos/.gitkeep
